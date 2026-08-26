@@ -99,7 +99,7 @@ server.on('error', (err: any) => {
   logger.warn(`[HTTP Server] Warning: ${err.message}`);
 });
 
-server.listen(PORT, () => {
+server.listen(Number(PORT), '0.0.0.0', () => {
   logger.info(`[UptimeRobot/Render] Health check HTTP server active on port ${PORT}`);
 });
 
