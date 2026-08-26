@@ -248,8 +248,9 @@ export class AudioResolver {
       );
 
       logger.info(`[FFmpeg] Process started for OggOpus encoding...`);
+      const resolvedFfmpegPath = process.env.FFMPEG_PATH || ffmpegPath || 'ffmpeg';
       const ffmpegProcess = spawn(
-        ffmpegPath!,
+        resolvedFfmpegPath,
         [
           '-i', 'pipe:0',
           '-c:a', 'libopus',
