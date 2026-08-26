@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
+
 import ffmpegPath from 'ffmpeg-static';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 import { env } from './config/env';
