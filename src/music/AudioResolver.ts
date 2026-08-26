@@ -1,5 +1,7 @@
 import { createAudioResource, AudioResource, StreamType } from '@discordjs/voice';
 import youtubedl from 'youtube-dl-exec';
+import ytdl from '@distube/ytdl-core';
+import { Readable } from 'stream';
 import { spawn } from 'child_process';
 import ffmpegPath from 'ffmpeg-static';
 import { TrackMetadata } from './Track';
@@ -237,21 +239,7 @@ export class AudioResolver {
     }
 
     try {
-      logger.info(`[yt-dlp] Process started for: ${targetUrl}`);
-      const ytdlProcess = youtubedl.exec(
-        targetUrl,
-        {
-          output: '-',
-          format: 'bestaudio/best',
-          noCheckCertificates: true,
-          noWarnings: true,
-          forceIpv4: true,
-          extractorArgs: 'youtube:player_client=android,mweb',
-        } as any,
-        { stdio: ['ignore', 'pipe', 'pipe'] }
-      );
-
-      logger.info(`[FFmpeg] Process started for OggOpus encoding...`);
+      logger.info(`[Audio] Initiating audio stream extraction for: ${targetUrl}`);
       const resolvedFfmpegPath = process.env.FFMPEG_PATH || ffmpegPath || 'ffmpeg';
       const ffmpegProcess = spawn(
         resolvedFfmpegPath,
@@ -267,19 +255,46 @@ export class AudioResolver {
         { stdio: ['pipe', 'pipe', 'pipe'] }
       );
 
-      let ytdlpTotalBytes = 0;
-      let ffmpegTotalBytes = 0;
-
-      if (ytdlProcess.stdout) {
-        ytdlProcess.stdout.on('data', (chunk: Buffer) => {
-          ytdlpTotalBytes += chunk.length;
-          if (ytdlpTotalBytes <= chunk.length || ytdlpTotalBytes % 500000 < chunk.length) {
-            logger.info(`[yt-dlp] Audio bytes received: ${chunk.length} bytes (Total: ${ytdlpTotalBytes} bytes)`);
-          }
+      let streamPiped = false;
+      try {
+        logger.info(`[ytdl-core] Extracting stream via @distube/ytdl-core...`);
+        const ytdlStream = ytdl(targetUrl, {
+          filter: 'audioonly',
+          quality: 'highestaudio',
+          highWaterMark: 1 << 25,
         });
 
-        ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
+        ytdlStream.on('error', (err) => {
+          logger.warn(`[ytdl-core] Stream error: ${err.message}`);
+        });
+
+        ytdlStream.pipe(ffmpegProcess.stdin);
+        streamPiped = true;
+      } catch (ytdlErr) {
+        logger.warn(`[ytdl-core] Stream creation failed: ${(ytdlErr as Error).message}. Falling back to yt-dlp...`);
       }
+
+      if (!streamPiped) {
+        logger.info(`[yt-dlp] Process started for fallback: ${targetUrl}`);
+        const ytdlProcess = youtubedl.exec(
+          targetUrl,
+          {
+            output: '-',
+            format: 'bestaudio/best',
+            noCheckCertificates: true,
+            noWarnings: true,
+            forceIpv4: true,
+            extractorArgs: 'youtube:player_client=android,mweb',
+          } as any,
+          { stdio: ['ignore', 'pipe', 'pipe'] }
+        );
+
+        if (ytdlProcess.stdout) {
+          ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
+        }
+      }
+
+      let ffmpegTotalBytes = 0;
 
       ffmpegProcess.stdin.on('error', (err: any) => {
         if (err.code !== 'EPIPE') {
@@ -294,27 +309,12 @@ export class AudioResolver {
         }
       });
 
-      if (ytdlProcess.stderr) {
-        ytdlProcess.stderr.on('data', (data) => {
-          const msg = data.toString().trim();
-          if (msg) logger.info(`[yt-dlp log] ${msg}`);
-        });
-      }
-
-      ffmpegProcess.stderr.on('data', (data) => {
+      ffmpegProcess.stderr.on('data', (data: Buffer) => {
         const msg = data.toString().trim();
         if (msg) logger.info(`[FFmpeg log] ${msg}`);
       });
 
-      ytdlProcess.on('exit', (code) => {
-        if (code !== 0 && code !== null) {
-          logger.error(`❌ [yt-dlp] process exited with code: ${code}`);
-        } else {
-          logger.info(`[yt-dlp] process exited cleanly. Total extracted: ${ytdlpTotalBytes} bytes`);
-        }
-      });
-
-      ffmpegProcess.on('exit', (code) => {
+      ffmpegProcess.on('exit', (code: number | null) => {
         if (code !== 0 && code !== null) {
           logger.error(`❌ [FFmpeg] process exited with code: ${code}`);
         } else {
@@ -322,11 +322,7 @@ export class AudioResolver {
         }
       });
 
-      ytdlProcess.on('error', (err) => {
-        logger.error(`❌ [yt-dlp] spawn error: ${err.message}`);
-      });
-
-      ffmpegProcess.on('error', (err) => {
+      ffmpegProcess.on('error', (err: Error) => {
         logger.error(`❌ [FFmpeg] spawn error: ${err.message}`);
       });
 
