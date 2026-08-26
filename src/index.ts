@@ -77,7 +77,7 @@ import http from 'http';
 
 // UptimeRobot / Render Cloud Deployment Health Check HTTP Server
 const PORT = process.env.PORT || 10000;
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   const url = req.url || '/';
   if (url === '/' || url === '/health' || url === '/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -93,7 +93,13 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Fyro Bot Active\n');
   }
-}).listen(PORT, () => {
+});
+
+server.on('error', (err: any) => {
+  logger.warn(`[HTTP Server] Warning: ${err.message}`);
+});
+
+server.listen(PORT, () => {
   logger.info(`[UptimeRobot/Render] Health check HTTP server active on port ${PORT}`);
 });
 
