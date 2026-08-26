@@ -61,37 +61,7 @@ export class GuildQueue {
     if (connection.state.status === VoiceConnectionStatus.Ready) {
       return;
     }
-
-    return new Promise<void>((resolve, reject) => {
-      let timer: NodeJS.Timeout;
-
-      const cleanup = () => {
-        clearTimeout(timer);
-        connection.off('stateChange', handleStateChange);
-      };
-
-      const handleStateChange = (_oldState: any, newState: any) => {
-        logger.info(`[Voice StateChange] ${_oldState.status} → ${newState.status}`);
-        if (newState.status === VoiceConnectionStatus.Ready) {
-          cleanup();
-          resolve();
-        } else if (newState.status === VoiceConnectionStatus.Destroyed) {
-          cleanup();
-          reject(new Error('Voice connection was destroyed'));
-        }
-      };
-
-      connection.on('stateChange', handleStateChange);
-
-      timer = setTimeout(() => {
-        cleanup();
-        if (connection.state.status === VoiceConnectionStatus.Ready) {
-          resolve();
-        } else {
-          reject(new Error(`Voice connection timeout in state: ${connection.state.status}`));
-        }
-      }, timeoutMs);
-    });
+    await entersState(connection, VoiceConnectionStatus.Ready, timeoutMs);
   }
 
   public async connect(voiceChannel: VoiceBasedChannel, textChannel?: TextChannel): Promise<void> {
