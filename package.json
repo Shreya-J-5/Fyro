@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts",
-    "register": "tsx src/scripts/registerCommands.ts"
+    "start": "node --dns-result-order=ipv4first dist/index.js",
+    "dev": "tsx watch --dns-result-order=ipv4first src/index.ts",
+    "register": "tsx --dns-result-order=ipv4first src/scripts/registerCommands.ts"
   },
   "keywords": [
     "discord",
