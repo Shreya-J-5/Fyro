@@ -10,7 +10,7 @@ class Database {
     if (env.DATABASE_URL) {
       this.pool = new Pool({
         connectionString: env.DATABASE_URL,
-        ssl: env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+        ssl: (env.DATABASE_URL.includes('sslmode=require') || env.DATABASE_URL.includes('ssl=true')) ? { rejectUnauthorized: false } : false,
       });
       this.init();
     } else {
