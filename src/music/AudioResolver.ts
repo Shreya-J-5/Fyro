@@ -240,6 +240,38 @@ export class AudioResolver {
 
     try {
       logger.info(`[Audio] Initiating audio stream extraction for: ${targetUrl}`);
+      
+      try {
+        logger.info(`[ytdl-core] Extracting stream via @distube/ytdl-core...`);
+        const ytdlStream = ytdl(targetUrl, {
+          filter: 'audioonly',
+          quality: 'highestaudio',
+          highWaterMark: 1 << 25,
+        });
+
+        logger.info(`[Discord] AudioResource created successfully with StreamType.Arbitrary`);
+        return createAudioResource(ytdlStream, {
+          inputType: StreamType.Arbitrary,
+          inlineVolume: true,
+        });
+      } catch (ytdlErr) {
+        logger.warn(`[ytdl-core] Direct stream creation failed: ${(ytdlErr as Error).message}. Falling back to yt-dlp + FFmpeg pipe...`);
+      }
+
+      logger.info(`[yt-dlp] Process started for fallback: ${targetUrl}`);
+      const ytdlProcess = youtubedl.exec(
+        targetUrl,
+        {
+          output: '-',
+          format: 'bestaudio/best',
+          noCheckCertificates: true,
+          noWarnings: true,
+          forceIpv4: true,
+          extractorArgs: 'youtube:player_client=android,mweb',
+        } as any,
+        { stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+
       const resolvedFfmpegPath = process.env.FFMPEG_PATH || ffmpegPath || 'ffmpeg';
       const ffmpegProcess = spawn(
         resolvedFfmpegPath,
@@ -255,78 +287,9 @@ export class AudioResolver {
         { stdio: ['pipe', 'pipe', 'pipe'] }
       );
 
-      let streamPiped = false;
-      try {
-        logger.info(`[ytdl-core] Extracting stream via @distube/ytdl-core...`);
-        const ytdlStream = ytdl(targetUrl, {
-          filter: 'audioonly',
-          quality: 'highestaudio',
-          highWaterMark: 1 << 25,
-        });
-
-        ytdlStream.on('error', (err) => {
-          logger.warn(`[ytdl-core] Stream error: ${err.message}`);
-        });
-
-        ytdlStream.pipe(ffmpegProcess.stdin);
-        streamPiped = true;
-      } catch (ytdlErr) {
-        logger.warn(`[ytdl-core] Stream creation failed: ${(ytdlErr as Error).message}. Falling back to yt-dlp...`);
+      if (ytdlProcess.stdout) {
+        ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
       }
-
-      if (!streamPiped) {
-        logger.info(`[yt-dlp] Process started for fallback: ${targetUrl}`);
-        const ytdlProcess = youtubedl.exec(
-          targetUrl,
-          {
-            output: '-',
-            format: 'bestaudio/best',
-            noCheckCertificates: true,
-            noWarnings: true,
-            forceIpv4: true,
-            extractorArgs: 'youtube:player_client=android,mweb',
-          } as any,
-          { stdio: ['ignore', 'pipe', 'pipe'] }
-        );
-
-        if (ytdlProcess.stdout) {
-          ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
-        }
-      }
-
-      let ffmpegTotalBytes = 0;
-
-      ffmpegProcess.stdin.on('error', (err: any) => {
-        if (err.code !== 'EPIPE') {
-          logger.error(`[FFmpeg stdin error] ${err.message}`);
-        }
-      });
-
-      ffmpegProcess.stdout.on('data', (chunk: Buffer) => {
-        ffmpegTotalBytes += chunk.length;
-        if (ffmpegTotalBytes <= chunk.length || ffmpegTotalBytes % 200000 < chunk.length) {
-          logger.info(`[FFmpeg] Audio bytes received on stdout: ${chunk.length} bytes (Total: ${ffmpegTotalBytes} bytes)`);
-        }
-      });
-
-      ffmpegProcess.stderr.on('data', (data: Buffer) => {
-        const msg = data.toString().trim();
-        if (msg) logger.info(`[FFmpeg log] ${msg}`);
-      });
-
-      ffmpegProcess.on('exit', (code: number | null) => {
-        if (code !== 0 && code !== null) {
-          logger.error(`❌ [FFmpeg] process exited with code: ${code}`);
-        } else {
-          logger.info(`[FFmpeg] process exited cleanly. Total encoded: ${ffmpegTotalBytes} bytes`);
-        }
-      });
-
-      ffmpegProcess.on('error', (err: Error) => {
-        logger.error(`❌ [FFmpeg] spawn error: ${err.message}`);
-      });
-
-      logger.info(`[Discord] AudioResource created with StreamType.OggOpus`);
 
       return createAudioResource(ffmpegProcess.stdout, {
         inputType: StreamType.OggOpus,
