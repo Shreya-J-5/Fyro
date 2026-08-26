@@ -11,10 +11,17 @@ import { handleInteraction } from './events/interactionCreate';
 import { registerSlashCommands } from './scripts/registerCommands';
 
 import { generateDependencyReport } from '@discordjs/voice';
+import sodium from 'libsodium-wrappers';
 
 logger.info(`[Startup] Environment loaded`);
 logger.info(`[Startup] Discord token configured: ${Boolean(env.DISCORD_TOKEN)}`);
 logger.info(`[Startup] Configured Client ID: ${env.DISCORD_CLIENT_ID}`);
+
+(async () => {
+  await sodium.ready;
+  logger.info(`[Startup] libsodium-wrappers initialized and ready.`);
+})();
+
 logger.info(`[Startup] Voice Dependency Report:\n${generateDependencyReport()}`);
 
 logger.info(`[Startup] Creating Discord client...`);
