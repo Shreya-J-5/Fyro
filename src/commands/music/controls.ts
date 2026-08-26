@@ -110,6 +110,13 @@ export const joinCommand: Command = {
       return;
     }
 
+    if (!voiceChannel.joinable) {
+      await interaction.editReply({
+        content: `❌ Cannot join **${voiceChannel.name}**. Please check that the bot has Connect & Speak permissions and the channel is not full.`,
+      });
+      return;
+    }
+
     const queue = musicManager.getOrCreateQueue(interaction.guildId!);
     await queue.connect(voiceChannel, (interaction.channel as TextChannel) || undefined);
 

@@ -38,6 +38,22 @@ export const playCommand: Command = {
       return;
     }
 
+    if (!voiceChannel.joinable) {
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor('#FF3333')
+            .setTitle('❌ Cannot Join Voice Channel')
+            .setDescription(
+              `I cannot join **${voiceChannel.name}**. Please check that:\n` +
+              `1. The voice channel is not full.\n` +
+              `2. Fyro has **Connect** and **Speak** permissions in this voice channel.`
+            ),
+        ],
+      });
+      return;
+    }
+
     const query = interaction.options.getString('query', true);
     logger.info(`[Play] Command received. Input: "${query}" | Guild: ${interaction.guildId} | User: ${interaction.user.username}`);
 
