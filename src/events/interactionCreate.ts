@@ -42,22 +42,34 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
       return;
     }
 
+    const safeReply = async (content: string) => {
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({ content, ephemeral: true });
+        } else {
+          await interaction.reply({ content, ephemeral: true });
+        }
+      } catch (err) {
+        logger.debug(`Could not send button response: ${(err as Error).message}`);
+      }
+    };
+
     const customId = interaction.customId;
 
     if (customId === 'btn_playpause') {
       if (queue.player.state.status === 'playing') {
         queue.pause();
-        await interaction.reply({ content: '⏸️ Playback paused.', ephemeral: true });
+        await safeReply('⏸️ Playback paused.');
       } else {
         queue.resume();
-        await interaction.reply({ content: '▶️ Playback resumed.', ephemeral: true });
+        await safeReply('▶️ Playback resumed.');
       }
     } else if (customId === 'btn_skip') {
       queue.skip();
-      await interaction.reply({ content: '⏭️ Track skipped.', ephemeral: true });
+      await safeReply('⏭️ Track skipped.');
     } else if (customId === 'btn_shuffle') {
       queue.shuffle();
-      await interaction.reply({ content: '🔀 Queue shuffled.', ephemeral: true });
+      await safeReply('🔀 Queue shuffled.');
     } else if (customId === 'btn_loop') {
       const nextMode =
         queue.loopMode === LoopMode.OFF
@@ -66,16 +78,16 @@ export async function handleInteraction(interaction: Interaction): Promise<void>
           ? LoopMode.QUEUE
           : LoopMode.OFF;
       queue.setLoopMode(nextMode);
-      await interaction.reply({ content: `🔁 Loop mode changed to **${nextMode}**.`, ephemeral: true });
+      await safeReply(`🔁 Loop mode changed to **${nextMode}**.`);
     } else if (customId === 'btn_prev') {
       if (queue.previousTracks.length === 0) {
-        await interaction.reply({ content: '❌ No previous tracks available.', ephemeral: true });
+        await safeReply('❌ No previous tracks available.');
         return;
       }
       const prevTrack = queue.previousTracks.pop()!;
       queue.queue.unshift(prevTrack);
       queue.skip();
-      await interaction.reply({ content: `⏮️ Playing previous track: **${prevTrack.title}**`, ephemeral: true });
+      await safeReply(`⏮️ Playing previous track: **${prevTrack.title}**`);
     }
   }
 }

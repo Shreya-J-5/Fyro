@@ -276,6 +276,12 @@ export class AudioResolver {
         ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
       }
 
+      ffmpegProcess.stdin.on('error', (err: any) => {
+        if (err.code !== 'EPIPE') {
+          logger.error(`[FFmpeg stdin error] ${err.message}`);
+        }
+      });
+
       ffmpegProcess.stdout.on('data', (chunk: Buffer) => {
         ffmpegTotalBytes += chunk.length;
         if (ffmpegTotalBytes <= chunk.length || ffmpegTotalBytes % 200000 < chunk.length) {
