@@ -100,7 +100,14 @@ export class GuildQueue {
       logger.info(`[Voice] Connection attempt ${attempt}/${MAX_RETRIES} to channel ${voiceChannel.id}`);
 
       try {
-        this.voiceConnection = joinVoiceChannel({
+        if (this.voiceConnection) {
+          const oldConn: VoiceConnection = this.voiceConnection;
+          this.voiceConnection = null;
+          try { oldConn.destroy(); } catch (e) { /* ignore */ }
+          await new Promise((r) => setTimeout(r, 500));
+        }
+
+        const connection = joinVoiceChannel({
           channelId: voiceChannel.id,
           guildId: voiceChannel.guild.id,
           adapterCreator: voiceChannel.guild.voiceAdapterCreator as any,
@@ -108,11 +115,17 @@ export class GuildQueue {
           selfMute: false,
         });
 
-        this.voiceConnection.on('debug', (msg) => {
+        this.voiceConnection = connection;
+
+        connection.on('debug', (msg) => {
           logger.info(`[Voice Debug] ${msg}`);
         });
 
-        await this.waitForVoiceReady(this.voiceConnection, 15_000);
+        connection.on('stateChange', (oldState, newState) => {
+          logger.info(`[Voice State] ${oldState.status} ➔ ${newState.status}`);
+        });
+
+        await this.waitForVoiceReady(connection, 15_000);
         logger.info(`🟢 Voice connection Ready in guild [${this.guildId}] (attempt ${attempt})`);
 
         this.voiceConnection.on(VoiceConnectionStatus.Disconnected, async () => {
