@@ -219,7 +219,9 @@ export class AudioResolver {
           dumpSingleJson: true,
           noCheckCertificates: true,
           noWarnings: true,
-        })) as any;
+          forceIpv4: true,
+          extractorArgs: 'youtube:player_client=android,mweb',
+        } as any)) as any;
 
         if (searchOutput && searchOutput.entries && searchOutput.entries.length > 0) {
           targetUrl = searchOutput.entries[0].webpage_url;
@@ -243,7 +245,9 @@ export class AudioResolver {
           format: 'bestaudio/best',
           noCheckCertificates: true,
           noWarnings: true,
-        },
+          forceIpv4: true,
+          extractorArgs: 'youtube:player_client=android,mweb',
+        } as any,
         { stdio: ['ignore', 'pipe', 'pipe'] }
       );
 
