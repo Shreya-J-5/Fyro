@@ -239,26 +239,7 @@ export class AudioResolver {
     }
 
     try {
-      logger.info(`[Audio] Initiating audio stream extraction for: ${targetUrl}`);
-      
-      try {
-        logger.info(`[ytdl-core] Extracting stream via @distube/ytdl-core...`);
-        const ytdlStream = ytdl(targetUrl, {
-          filter: 'audioonly',
-          quality: 'highestaudio',
-          highWaterMark: 1 << 25,
-        });
-
-        logger.info(`[Discord] AudioResource created successfully with StreamType.Arbitrary`);
-        return createAudioResource(ytdlStream, {
-          inputType: StreamType.Arbitrary,
-          inlineVolume: true,
-        });
-      } catch (ytdlErr) {
-        logger.warn(`[ytdl-core] Direct stream creation failed: ${(ytdlErr as Error).message}. Falling back to yt-dlp + FFmpeg pipe...`);
-      }
-
-      logger.info(`[yt-dlp] Process started for fallback: ${targetUrl}`);
+      logger.info(`[yt-dlp] Starting audio extraction for: ${targetUrl}`);
       const ytdlProcess = youtubedl.exec(
         targetUrl,
         {
@@ -272,6 +253,7 @@ export class AudioResolver {
         { stdio: ['ignore', 'pipe', 'pipe'] }
       );
 
+      logger.info(`[FFmpeg] Starting OggOpus transcoding...`);
       const resolvedFfmpegPath = process.env.FFMPEG_PATH || ffmpegPath || 'ffmpeg';
       const ffmpegProcess = spawn(
         resolvedFfmpegPath,
@@ -291,6 +273,23 @@ export class AudioResolver {
         ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
       }
 
+      ytdlProcess.stderr?.on('data', (data) => {
+        const msg = data.toString().trim();
+        if (msg) logger.debug(`[yt-dlp log] ${msg}`);
+      });
+
+      ffmpegProcess.stderr?.on('data', (data) => {
+        const msg = data.toString().trim();
+        if (msg) logger.debug(`[FFmpeg log] ${msg}`);
+      });
+
+      ffmpegProcess.stdin.on('error', (err: any) => {
+        if (err.code !== 'EPIPE') {
+          logger.warn(`[FFmpeg stdin] ${err.message}`);
+        }
+      });
+
+      logger.info(`[Discord] AudioResource created with StreamType.OggOpus`);
       return createAudioResource(ffmpegProcess.stdout, {
         inputType: StreamType.OggOpus,
         inlineVolume: true,
