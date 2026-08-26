@@ -101,20 +101,11 @@ export class GuildQueue {
     if (
       this.voiceConnection &&
       this.voiceConnection.joinConfig.channelId === voiceChannel.id &&
-      (this.voiceConnection.state.status === VoiceConnectionStatus.Ready ||
-       this.voiceConnection.state.status === VoiceConnectionStatus.Connecting ||
-       this.voiceConnection.state.status === VoiceConnectionStatus.Signalling)
+      this.voiceConnection.state.status === VoiceConnectionStatus.Ready
     ) {
-      logger.info(`[Voice] Existing connection found in channel [${voiceChannel.id}]. Status: ${this.voiceConnection.state.status}`);
-      try {
-        await this.waitForVoiceReady(this.voiceConnection, 10_000);
-        this.resetLeaveTimeout(false);
-        return;
-      } catch (err) {
-        logger.warn(`[Voice] Existing connection failed to reach Ready: ${(err as Error).message}. Reconnecting...`);
-        try { this.voiceConnection.destroy(); } catch (e) { /* ignore */ }
-        this.voiceConnection = null;
-      }
+      logger.info(`[Voice] Active healthy connection found in channel [${voiceChannel.id}].`);
+      this.resetLeaveTimeout(false);
+      return;
     }
 
     // Destroy any existing stale connection (from our instance)

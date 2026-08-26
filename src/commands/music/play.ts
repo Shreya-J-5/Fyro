@@ -1,4 +1,5 @@
 import { ChatInputCommandInteraction, EmbedBuilder, GuildMember, SlashCommandBuilder, TextChannel } from 'discord.js';
+import { VoiceConnectionStatus } from '@discordjs/voice';
 import { Command } from '../Command';
 import { musicManager } from '../../music/MusicManager';
 import { AudioResolver } from '../../music/AudioResolver';
@@ -60,7 +61,7 @@ export const playCommand: Command = {
     const queue = musicManager.getOrCreateQueue(interaction.guildId!);
 
     try {
-      if (!queue.voiceConnection) {
+      if (!queue.voiceConnection || queue.voiceConnection.state.status !== VoiceConnectionStatus.Ready) {
         logger.info(`[Play] Connecting to voice channel: ${voiceChannel.id}`);
         await queue.connect(voiceChannel, (interaction.channel as TextChannel) || undefined);
         logger.info(`[Play] Voice connection established`);
