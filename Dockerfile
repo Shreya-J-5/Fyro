@@ -17,8 +17,8 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install ffmpeg in runtime container
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg & python3 in runtime container (required for yt-dlp and audio encoding)
+RUN apk add --no-cache ffmpeg python3
 
 ENV NODE_ENV=production
 

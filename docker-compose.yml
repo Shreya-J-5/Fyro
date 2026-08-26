@@ -1,16 +1,16 @@
 version: '3.8'
 
 services:
-  vynx-bot:
+  fyro-bot:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: vynx_discord_bot
+    container_name: fyro_discord_bot
     restart: always
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://vynx_user:vynx_password@postgres:5432/vynx_db
+      - DATABASE_URL=postgresql://fyro_user:fyro_password@postgres:5432/fyro_db
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
@@ -18,12 +18,12 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    container_name: vynx_postgres
+    container_name: fyro_postgres
     restart: always
     environment:
-      POSTGRES_USER: vynx_user
-      POSTGRES_PASSWORD: vynx_password
-      POSTGRES_DB: vynx_db
+      POSTGRES_USER: fyro_user
+      POSTGRES_PASSWORD: fyro_password
+      POSTGRES_DB: fyro_db
     ports:
       - "5432:5432"
     volumes:
@@ -31,7 +31,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: vynx_redis
+    container_name: fyro_redis
     restart: always
     ports:
       - "6379:6379"
