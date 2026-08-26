@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: fyro-music-bot
+    name: fyro-1
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
