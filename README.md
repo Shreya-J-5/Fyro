@@ -1,53 +1,48 @@
-# 🔥 Fyro — High-Performance Discord Music Bot 🎵
+# 🎵 Fyro
 
-> *Elevate your server's sound with seamless Spotify metadata resolution, interactive player controls, dynamic vibe streams, and real-time audio playback.* 🚀
+A Discord music bot built with TypeScript, discord.js v14, Spotify API, Postgres, and Redis.
 
----
+## ⚡ Features
 
-## ✨ Features
+- **Spotify Playback**: Stream tracks, albums, and playlists straight from Spotify links or search terms.
+- **Interactive Player**: Now Playing embeds with interactive button controls (`⏮️`, `▶️/⏸️`, `⏭️`, `🔀`, `🔁`).
+- **Radio & Mood Playlists**:
+  - `/vibe <mood>`: Quick playlists for chill, workout, party, focus, gaming, or sleep.
+  - `/radio <target>`: Endless queue based on an artist or genre.
+- **Favorites & History**: Save tracks with `/favorites` and view past songs with `/history`.
+- **Fast & Reliable**: Uses Redis for queue caching and PostgreSQL for saving server settings and user favorites.
 
-- 🎧 **Spotify & Web API Integration**: Play tracks, albums, and playlists seamlessly from Spotify links & search queries.
-- ⚡ **Interactive Now-Playing Panel**: Real-time progress bar with interactive control buttons (`⏮️`, `▶️/⏸️`, `⏭️`, `🔀`, `🔁`).
-- 📻 **Vibe & Radio Discovery**:
-  - `/vibe <mood>`: Instant mood playlists (*chill, workout, party, focus, gaming, sleep*).
-  - `/radio <target>`: Continuous song discovery based on your favorite artist or genre.
-- 💾 **Favorites & History**: Save tracks with `/favorites` and view guild playback history with `/history`.
-- 🚀 **Production Stack**: Built with **TypeScript**, **discord.js v14**, **PostgreSQL** & **Redis** for cached queues and state persistence.
-
----
-
-## 🛠️ Quick Commands
+## 🛠️ Commands
 
 | Command | Description |
 | :--- | :--- |
-| 🎶 `/play <query>` | Play a track, album, Spotify link, or search query |
-| ⏸️ `/pause` & ▶️ `/resume` | Pause or resume track playback |
-| ⏭️ `/skip` & 🛑 `/stop` | Skip current track or stop playback & clear queue |
-| 📑 `/queue` | View upcoming queued tracks |
-| 🎛️ `/nowplaying` | Show interactive music player panel |
-| 📻 `/radio <target>` | Start an endless artist/genre radio |
-| 🎭 `/vibe <mood>` | Play instant mood-based playlist |
-| ❤️ `/favorites` | Manage your saved favorite tracks |
-| ⚙️ `/settings` | Configure server volume & leave timeout |
-| ❓ `/help` | Interactive command list |
+| `/play <query>` | Play a song, album, Spotify link, or search query |
+| `/pause` & `/resume` | Pause or resume audio |
+| `/skip` & `/stop` | Skip current track or stop playback |
+| `/queue` | View upcoming tracks in queue |
+| `/nowplaying` | Show interactive player controls |
+| `/radio <target>` | Start an endless artist/genre radio stream |
+| `/vibe <mood>` | Play mood-based music |
+| `/favorites` | Save or list your favorite songs |
+| `/history` | View recently played tracks |
+| `/settings` | Adjust default volume and leave timeout |
+| `/help` | List available commands |
 
----
+## 🚀 Getting Started
 
-## 🚀 Quick Start
-
-### 1️⃣ Clone & Install
+### 1. Installation
 ```bash
 git clone https://github.com/Shreya-J-5/Fyro.git
 cd Fyro
 npm install
 ```
 
-### 2️⃣ Configure Environment
-Copy `.env.example` to `.env` and add your keys:
+### 2. Set up Environment Variables
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Add your credentials in `.env`:
+Fill in your credentials in `.env`:
 ```env
 DISCORD_TOKEN=your_discord_token
 DISCORD_CLIENT_ID=your_client_id
@@ -55,34 +50,19 @@ SPOTIFY_CLIENT_ID=your_spotify_id
 SPOTIFY_CLIENT_SECRET=your_spotify_secret
 ```
 
-### 3️⃣ Register Commands & Run
+### 3. Register Commands & Run
 ```bash
-# Build TypeScript
-npm run build
-
-# Register Slash Commands with Discord
+# Register slash commands with Discord
 npm run register
 
-# Run Dev Server
+# Start development mode
 npm run dev
 ```
 
----
+## 🐳 Docker Setup
 
-## 🐳 Docker Deployment
-
-Run the complete Fyro stack (Bot + PostgreSQL + Redis) using Docker:
+Run Fyro along with PostgreSQL and Redis:
 
 ```bash
 docker-compose up -d --build
 ```
-
----
-
-## 🛡️ Security & Privacy
-
-🔒 **Zero Credential Exposure**: All API keys and secret tokens are managed exclusively through `.env` variables and excluded from Git version control.
-
----
-
-<p align="center">Made with ❤️ for Discord music communities</p>
