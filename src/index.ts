@@ -73,6 +73,19 @@ process.on('unhandledRejection', (reason) => {
   logger.error(`[Unhandled Rejection]: ${reason}`);
 });
 
+import http from 'http';
+
+// Render / Cloud deployment health check HTTP server if PORT is defined
+if (process.env.PORT) {
+  const port = process.env.PORT;
+  http.createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Fyro Discord Bot is Online!\n');
+  }).listen(port, () => {
+    logger.info(`[Startup] Health check HTTP server listening on port ${port}`);
+  });
+}
+
 logger.info(`[Startup] Attempting Discord login...`);
 client.login(env.DISCORD_TOKEN).catch((err) => {
   logger.error(`❌ [Startup] Failed to login to Discord: ${err.message}`);
