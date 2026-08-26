@@ -57,8 +57,65 @@ export class GuildQueue {
     this.setupPlayerListeners();
   }
 
+  private async waitForVoiceReady(connection: VoiceConnection, timeoutMs = 15000): Promise<void> {
+    if (connection.state.status === VoiceConnectionStatus.Ready) {
+      return;
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      let timer: NodeJS.Timeout;
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        connection.off('stateChange', handleStateChange);
+      };
+
+      const handleStateChange = (_oldState: any, newState: any) => {
+        logger.info(`[Voice StateChange] ${_oldState.status} → ${newState.status}`);
+        if (newState.status === VoiceConnectionStatus.Ready) {
+          cleanup();
+          resolve();
+        } else if (newState.status === VoiceConnectionStatus.Destroyed) {
+          cleanup();
+          reject(new Error('Voice connection was destroyed'));
+        }
+      };
+
+      connection.on('stateChange', handleStateChange);
+
+      timer = setTimeout(() => {
+        cleanup();
+        if (connection.state.status === VoiceConnectionStatus.Ready) {
+          resolve();
+        } else {
+          reject(new Error(`Voice connection timeout in state: ${connection.state.status}`));
+        }
+      }, timeoutMs);
+    });
+  }
+
   public async connect(voiceChannel: VoiceBasedChannel, textChannel?: TextChannel): Promise<void> {
     if (textChannel) this.textChannel = textChannel;
+
+    // Check if we already have a functional connection to this exact channel
+    if (
+      this.voiceConnection &&
+      this.voiceConnection.joinConfig.channelId === voiceChannel.id &&
+      (this.voiceConnection.state.status === VoiceConnectionStatus.Ready ||
+       this.voiceConnection.state.status === VoiceConnectionStatus.Connecting ||
+       this.voiceConnection.state.status === VoiceConnectionStatus.Signalling)
+    ) {
+      logger.info(`[Voice] Existing connection found in channel [${voiceChannel.id}]. Status: ${this.voiceConnection.state.status}`);
+      try {
+        await this.waitForVoiceReady(this.voiceConnection, 10_000);
+        this.resetLeaveTimeout(false);
+        return;
+      } catch (err) {
+        logger.warn(`[Voice] Existing connection failed to reach Ready: ${(err as Error).message}. Reconnecting...`);
+        try { this.voiceConnection.destroy(); } catch (e) { /* ignore */ }
+        this.voiceConnection = null;
+      }
+    }
 
     // Destroy any existing stale connection (from our instance)
     if (this.voiceConnection) {
@@ -81,47 +138,53 @@ export class GuildQueue {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       logger.info(`[Voice] Connection attempt ${attempt}/${MAX_RETRIES} to channel ${voiceChannel.id}`);
 
-      this.voiceConnection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: voiceChannel.guild.id,
-        adapterCreator: voiceChannel.guild.voiceAdapterCreator as any,
-        selfDeaf: true,
-        selfMute: false,
-      });
-
-      this.voiceConnection.on('debug', (msg) => {
-        logger.info(`[Voice Debug] ${msg}`);
-      });
-
-      this.voiceConnection.on('stateChange', (oldState, newState) => {
-        logger.info(`[Voice] Status: ${oldState.status} → ${newState.status}`);
-      });
-
-      this.voiceConnection.on(VoiceConnectionStatus.Disconnected, async () => {
-        try {
-          await Promise.race([
-            entersState(this.voiceConnection!, VoiceConnectionStatus.Signalling, 5_000),
-            entersState(this.voiceConnection!, VoiceConnectionStatus.Connecting, 5_000),
-          ]);
-        } catch (error) {
-          this.destroy();
-        }
-      });
-
       try {
-        await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 15_000);
+        this.voiceConnection = joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId: voiceChannel.guild.id,
+          adapterCreator: voiceChannel.guild.voiceAdapterCreator as any,
+          selfDeaf: true,
+          selfMute: false,
+        });
+
+        this.voiceConnection.on('debug', (msg) => {
+          logger.info(`[Voice Debug] ${msg}`);
+        });
+
+        await this.waitForVoiceReady(this.voiceConnection, 15_000);
         logger.info(`🟢 Voice connection Ready in guild [${this.guildId}] (attempt ${attempt})`);
+
+        this.voiceConnection.on(VoiceConnectionStatus.Disconnected, async () => {
+          logger.warn(`[Voice] Connection disconnected in guild [${this.guildId}]`);
+          if (!this.voiceConnection) return;
+          try {
+            await Promise.race([
+              this.waitForVoiceReady(this.voiceConnection, 5_000),
+              new Promise((r) => setTimeout(r, 5_000)),
+            ]);
+            if (this.voiceConnection?.state.status === VoiceConnectionStatus.Ready) {
+              logger.info(`[Voice] Successfully recovered voice connection`);
+              return;
+            }
+          } catch (e) {
+            /* ignore */
+          }
+          this.destroy();
+        });
+
         lastError = null;
         break; // Success!
       } catch (err) {
         lastError = err as Error;
         logger.warn(`[Voice] Attempt ${attempt} failed: ${(err as Error).message}. Status: ${this.voiceConnection?.state.status}`);
-        try { this.voiceConnection.destroy(); } catch (e) { /* ignore */ }
-        this.voiceConnection = null;
+        if (this.voiceConnection) {
+          try { this.voiceConnection.destroy(); } catch (e) { /* ignore */ }
+          this.voiceConnection = null;
+        }
 
         if (attempt < MAX_RETRIES) {
-          logger.info(`[Voice] Waiting 2s before retry...`);
-          await new Promise(r => setTimeout(r, 2000));
+          logger.info(`[Voice] Waiting 1.5s before retry...`);
+          await new Promise((r) => setTimeout(r, 1500));
         }
       }
     }
@@ -170,7 +233,7 @@ export class GuildQueue {
       logger.info(`[Voice] VoiceConnection status before play: ${this.voiceConnection?.state.status}`);
       if (this.voiceConnection && this.voiceConnection.state.status !== VoiceConnectionStatus.Ready) {
         try {
-          await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 10_000);
+          await this.waitForVoiceReady(this.voiceConnection, 10_000);
           logger.info(`[Voice] VoiceConnection successfully reached Ready state`);
         } catch (e) {
           throw new Error(`Voice connection not ready before playback: ${(e as Error).message}`);

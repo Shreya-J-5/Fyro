@@ -265,12 +265,16 @@ export class AudioResolver {
       let ytdlpTotalBytes = 0;
       let ffmpegTotalBytes = 0;
 
-      ytdlProcess.stdout.on('data', (chunk: Buffer) => {
-        ytdlpTotalBytes += chunk.length;
-        if (ytdlpTotalBytes <= chunk.length || ytdlpTotalBytes % 500000 < chunk.length) {
-          logger.info(`[yt-dlp] Audio bytes received: ${chunk.length} bytes (Total: ${ytdlpTotalBytes} bytes)`);
-        }
-      });
+      if (ytdlProcess.stdout) {
+        ytdlProcess.stdout.on('data', (chunk: Buffer) => {
+          ytdlpTotalBytes += chunk.length;
+          if (ytdlpTotalBytes <= chunk.length || ytdlpTotalBytes % 500000 < chunk.length) {
+            logger.info(`[yt-dlp] Audio bytes received: ${chunk.length} bytes (Total: ${ytdlpTotalBytes} bytes)`);
+          }
+        });
+
+        ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
+      }
 
       ffmpegProcess.stdout.on('data', (chunk: Buffer) => {
         ffmpegTotalBytes += chunk.length;
@@ -279,12 +283,12 @@ export class AudioResolver {
         }
       });
 
-      ytdlProcess.stdout.pipe(ffmpegProcess.stdin);
-
-      ytdlProcess.stderr.on('data', (data) => {
-        const msg = data.toString().trim();
-        if (msg) logger.info(`[yt-dlp log] ${msg}`);
-      });
+      if (ytdlProcess.stderr) {
+        ytdlProcess.stderr.on('data', (data) => {
+          const msg = data.toString().trim();
+          if (msg) logger.info(`[yt-dlp log] ${msg}`);
+        });
+      }
 
       ffmpegProcess.stderr.on('data', (data) => {
         const msg = data.toString().trim();
