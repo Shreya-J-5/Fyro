@@ -1,10 +1,12 @@
 services:
-  - type: worker
+  - type: web
     name: fyro-music-bot
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      - key: PORT
+        value: "10000"
       - key: DISCORD_TOKEN
         sync: false
       - key: DISCORD_CLIENT_ID
