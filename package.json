@@ -1,0 +1,44 @@
+{
+  "name": "fyro-discord-music-bot",
+  "version": "1.0.0",
+  "description": "Production-grade custom Discord Music Bot with Spotify integration and audio resolution",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "register": "tsx src/scripts/registerCommands.ts"
+  },
+  "keywords": [
+    "discord",
+    "music-bot",
+    "spotify",
+    "voice",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/voice": "^0.17.0",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "ffmpeg-static": "^5.3.0",
+    "ioredis": "^5.4.1",
+    "libsodium-wrappers": "^0.7.15",
+    "opusscript": "^0.0.8",
+    "pg": "^8.12.0",
+    "spotify-web-api-node": "^5.0.2",
+    "tweetnacl": "^1.0.3",
+    "winston": "^3.13.1",
+    "youtube-dl-exec": "^3.1.12",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
+    "@types/node": "^20.14.9",
+    "@types/pg": "^8.11.6",
+    "@types/spotify-web-api-node": "^5.0.11",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.2"
+  }
+}

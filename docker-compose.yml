@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  vynx-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vynx_discord_bot
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://vynx_user:vynx_password@postgres:5432/vynx_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: vynx_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: vynx_user
+      POSTGRES_PASSWORD: vynx_password
+      POSTGRES_DB: vynx_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: vynx_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
