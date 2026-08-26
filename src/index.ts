@@ -1,10 +1,39 @@
 import dns from 'dns';
 dns.setDefaultResultOrder('ipv4first');
 
+import http from 'http';
 import ffmpegPath from 'ffmpeg-static';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 import { env } from './config/env';
 import { logger } from './config/logger';
+
+// UptimeRobot / Render Cloud Deployment Health Check HTTP Server
+const PORT = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
+  const url = req.url || '/';
+  if (url === '/' || url === '/health' || url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        bot: 'Fyro Discord Bot',
+        uptimeSeconds: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Fyro Bot Active\n');
+  }
+});
+
+server.on('error', (err: any) => {
+  logger.warn(`[HTTP Server] Warning: ${err.message}`);
+});
+
+server.listen(Number(PORT), '0.0.0.0', () => {
+  logger.info(`[UptimeRobot/Render] Health check HTTP server active on port ${PORT}`);
+});
 
 if (ffmpegPath) {
   process.env.FFMPEG_PATH = ffmpegPath;
@@ -71,36 +100,6 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (reason) => {
   logger.error(`[Unhandled Rejection]: ${reason}`);
-});
-
-import http from 'http';
-
-// UptimeRobot / Render Cloud Deployment Health Check HTTP Server
-const PORT = process.env.PORT || 10000;
-const server = http.createServer((req, res) => {
-  const url = req.url || '/';
-  if (url === '/' || url === '/health' || url === '/ping') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        status: 'ok',
-        bot: 'Fyro Discord Bot',
-        uptimeSeconds: Math.floor(process.uptime()),
-        timestamp: new Date().toISOString(),
-      })
-    );
-  } else {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Fyro Bot Active\n');
-  }
-});
-
-server.on('error', (err: any) => {
-  logger.warn(`[HTTP Server] Warning: ${err.message}`);
-});
-
-server.listen(Number(PORT), '0.0.0.0', () => {
-  logger.info(`[UptimeRobot/Render] Health check HTTP server active on port ${PORT}`);
 });
 
 logger.info(`[Startup] Attempting Discord login...`);
