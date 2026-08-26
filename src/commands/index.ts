@@ -3,8 +3,8 @@ import { Command } from './Command';
 import { playCommand } from './music/play';
 import { pauseCommand, resumeCommand } from './music/pauseResume';
 import { skipCommand, stopCommand } from './music/skipStop';
-import { nowplayingCommand, queueCommand } from './music/queueNowplaying';
-import { clearCommand, joinCommand, leaveCommand, loopCommand, removeCommand, shuffleCommand } from './music/controls';
+import { nowplayingCommand, queueCommand, viewQueueCommand } from './music/queueNowplaying';
+import { clearCommand, clearQueueCommand, joinCommand, leaveCommand, loopCommand, removeCommand, shuffleCommand } from './music/controls';
 import { radioCommand, searchCommand, vibeCommand } from './discovery/discovery';
 import { favoritesCommand, historyCommand } from './user/userCommands';
 import { settingsCommand } from './admin/settings';
@@ -17,11 +17,13 @@ export const commandsList: Command[] = [
   skipCommand,
   stopCommand,
   queueCommand,
+  viewQueueCommand,
   nowplayingCommand,
   shuffleCommand,
   loopCommand,
   removeCommand,
   clearCommand,
+  clearQueueCommand,
   joinCommand,
   leaveCommand,
   vibeCommand,

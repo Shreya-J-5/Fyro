@@ -96,6 +96,14 @@ export const clearCommand: Command = {
   },
 };
 
+export const clearQueueCommand: Command = {
+  category: 'music',
+  data: new SlashCommandBuilder().setName('clear-queue').setDescription('Clear all tracks from the queue'),
+  async execute(interaction: ChatInputCommandInteraction) {
+    await clearCommand.execute(interaction);
+  },
+};
+
 export const joinCommand: Command = {
   category: 'music',
   data: new SlashCommandBuilder().setName('join').setDescription('Connect Vynx to your current voice channel'),

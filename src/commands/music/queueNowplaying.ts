@@ -50,3 +50,11 @@ export const nowplayingCommand: Command = {
     await interaction.reply({ content: '📊 Displaying Now Playing panel.', ephemeral: true });
   },
 };
+
+export const viewQueueCommand: Command = {
+  category: 'music',
+  data: new SlashCommandBuilder().setName('view-queue').setDescription('View all tracks currently in the music queue'),
+  async execute(interaction: ChatInputCommandInteraction) {
+    await queueCommand.execute(interaction);
+  },
+};
