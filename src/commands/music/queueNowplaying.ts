@@ -9,7 +9,12 @@ export const queueCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = musicManager.getQueue(interaction.guildId!);
     if (!queue || (!queue.currentTrack && queue.queue.length === 0)) {
-      await interaction.reply({ content: '📜 Queue is currently empty.', ephemeral: true });
+      const content = '📜 Queue is currently empty.';
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content });
+      } else {
+        await interaction.reply({ content, ephemeral: true });
+      }
       return;
     }
 
@@ -32,7 +37,11 @@ export const queueCommand: Command = {
       )
       .setFooter({ text: `Loop Mode: ${queue.loopMode} | Shuffled: ${queue.isShuffled ? 'Yes' : 'No'}` });
 
-    await interaction.reply({ embeds: [embed] });
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.reply({ embeds: [embed] });
+    }
   },
 };
 
@@ -42,12 +51,22 @@ export const nowplayingCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = musicManager.getQueue(interaction.guildId!);
     if (!queue || !queue.currentTrack) {
-      await interaction.reply({ content: '❌ Nothing is currently playing.', ephemeral: true });
+      const content = '❌ Nothing is currently playing.';
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content });
+      } else {
+        await interaction.reply({ content, ephemeral: true });
+      }
       return;
     }
 
     await queue.sendNowPlayingEmbed(queue.currentTrack);
-    await interaction.reply({ content: '📊 Displaying Now Playing panel.', ephemeral: true });
+    const content = '📊 Displaying Now Playing panel.';
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply({ content });
+    } else {
+      await interaction.reply({ content, ephemeral: true });
+    }
   },
 };
 
