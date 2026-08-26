@@ -75,16 +75,27 @@ process.on('unhandledRejection', (reason) => {
 
 import http from 'http';
 
-// Render / Cloud deployment health check HTTP server if PORT is defined
-if (process.env.PORT) {
-  const port = process.env.PORT;
-  http.createServer((_req, res) => {
+// UptimeRobot / Render Cloud Deployment Health Check HTTP Server
+const PORT = process.env.PORT || 10000;
+http.createServer((req, res) => {
+  const url = req.url || '/';
+  if (url === '/' || url === '/health' || url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        bot: 'Fyro Discord Bot',
+        uptimeSeconds: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } else {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Fyro Discord Bot is Online!\n');
-  }).listen(port, () => {
-    logger.info(`[Startup] Health check HTTP server listening on port ${port}`);
-  });
-}
+    res.end('Fyro Bot Active\n');
+  }
+}).listen(PORT, () => {
+  logger.info(`[UptimeRobot/Render] Health check HTTP server active on port ${PORT}`);
+});
 
 logger.info(`[Startup] Attempting Discord login...`);
 client.login(env.DISCORD_TOKEN).catch((err) => {
